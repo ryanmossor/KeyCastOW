@@ -12,10 +12,10 @@ struct Key {
     LPCWSTR label;
 };
 struct Key specialKeys[] = {
-    {0x08, L"Backspace"},                 // back
-    {0x09, L"Tab"},
+    {0x08, L"\u232B"},              // backspace
+    {0x09, L"\u2B7E"},              // tab
     {0x0C, L"Clear"},
-    {0x0D, L"Enter"},              // enter
+    {0x0D, L"\u23CE"},              // enter
     {0x10, L"Shift"},
     {0x11, L"Control"},
     {0x12, L"Menu"},
@@ -25,12 +25,12 @@ struct Key specialKeys[] = {
     {0x17, L"Junja"},
     {0x18, L"Final"},
     {0x19, L"Kanji"},
-    {0x1B, L"Esc"},               // escape
+    {0x1B, L"Esc"},                 // escape
     {0x1C, L"Convert"},
     {0x1D, L"Nonconvert"},
     {0x1E, L"Accept"},
     {0x1F, L"ModeChange"},
-    {0x20, L"Space"},              // space
+    {0x20, L"\u2423"},              // space
     {0x21, L"PageUp"},
     {0x22, L"PageDown"},
     {0x23, L"End"},
