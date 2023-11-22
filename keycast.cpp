@@ -121,14 +121,14 @@ DWORD WINAPI replay(LPVOID ptr)
     Displayed dp(0, 0, 0);
     fread(&dp, sizeof(Displayed), 1, stream);
     fread(tmp, sizeof(WCHAR), dp.len, stream);
-    showText(tmp, dp.behavior);
+    showText(tmp, 0);
     DWORD lastTm = dp.tm;
     while(replayStatus == 1 && fread(&dp, sizeof(Displayed), 1, stream) == 1) {
         Sleep(dp.tm - lastTm);
         lastTm = dp.tm;
         fread(tmp, sizeof(WCHAR), dp.len, stream);
         tmp[dp.len] = '\0';
-        showText(tmp, dp.behavior);
+        showText(tmp, 0);
     }
     fclose(stream);
     replayStatus = 0;
@@ -272,7 +272,7 @@ static void startFade() {
         if (deferredTime > 0) {
             deferredTime -= SHOWTIMER_INTERVAL;
         } else {
-            showText(deferredLabel, 1);
+            showText(deferredLabel, 0);
             fadeLastLabel(FALSE);
             deferredLabel[0] = '\0';
         }
@@ -494,7 +494,7 @@ void positionOrigin(int action, POINT &pt) {
 #endif
         WCHAR tmp[256];
         swprintf(tmp, 256, L"%d, %d", pt.x, pt.y);
-        showText(tmp, 2);
+        showText(tmp, 0);
     } else {
         positioning = FALSE;
         deskOrigin.x = pt.x;
@@ -878,7 +878,7 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
                         alignment = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT));
                         clearColor.SetValue(0x7f7f7f7f);
                         gCanvas->Clear(clearColor);
-                        showText(L"\u254b", 1);
+                        showText(L"\u254b", 0);
                         fadeLastLabel(FALSE);
                         positioning = TRUE;
                     }
@@ -1265,13 +1265,13 @@ int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst,
     while( GetMessage(&msg, NULL, 0, 0) )    {
         if (msg.message == WM_HOTKEY) {
             if(kbdhook) {
-                showText(L"\u263b - KeyCastOW OFF", 1);
+                showText(L"\u263b - KeyCastOW OFF", 0);
                 UnhookWindowsHookEx(kbdhook);
                 kbdhook = NULL;
                 UnhookWindowsHookEx(moshook);
                 moshook = NULL;
             } else {
-                showText(L"\u263b - KeyCastOW ON", 1);
+                showText(L"\u263b - KeyCastOW ON", 0);
                 kbdhook = SetWindowsHookEx(WH_KEYBOARD_LL, LLKeyboardProc, hInstance, NULL);
                 moshook = SetWindowsHookEx(WH_MOUSE_LL, LLMouseProc, hThisInst, 0);
             }

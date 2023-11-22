@@ -340,9 +340,9 @@ LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp)
                 swprintf(c, 64, L"%s", modifierkey);
                 addBracket(c);
                 if(lastvk == k.vkCode) {
-                    showText(c, 2);
+                    showText(c, 0);
                 } else {
-                    showText(c, 1);
+                    showText(c, 0);
                 }
             }
         } else {
@@ -367,7 +367,7 @@ LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp)
                     theKey = tmp;
                 }
                 if(fin || !onlyCommandKeys) {
-                    showText(theKey, fin);
+                    showText(theKey, 0);
                 }
             }
         }
@@ -452,15 +452,15 @@ LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp)
                 modifierUsed = TRUE;
                 swprintf(tmp, 64, L"%s %c %s", modifierkey, comboChars[1], c);
                 addBracket(tmp);
-                showText(tmp, behavior);
+                showText(tmp, 0);
             } else if(GetKeyState(VK_SHIFT) < 0) {
                 swprintf(tmp, 64, L"Shift %c %s", comboChars[1], c);
                 addBracket(tmp);
-                showText(tmp, behavior);
+                showText(tmp, 0);
             } else if(!mouseCapturingMod) {
                 swprintf(tmp, 64, L"%s", c);
                 addBracket(tmp);
-                showText(tmp, behavior);
+                showText(tmp, 0);
             }
 
             fadeLastLabel(!holdButton);
