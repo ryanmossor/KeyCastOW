@@ -345,7 +345,7 @@ void showText(LPCWSTR text, int behavior = 0) {
     } else if (behavior == 3) {
         wcscpy_s(deferredLabel, 64, text);
         deferredTime = 120;
-    } else if (behavior == 1 || (newStrokeCount <= 0) || outOfLine(text)) {
+    } else if (behavior == 1 || (newStrokeCount <= 0) /* || outOfLine(text) */) {
         for (i = 1; i < labelCount; i++) {
             if(keyLabels[i].time > 0) {
                 break;
