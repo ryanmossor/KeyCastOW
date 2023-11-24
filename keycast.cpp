@@ -38,6 +38,18 @@ struct KeyLabel {
     }
 };
 
+const WCHAR SPECIAL_KEYS[] = {
+    L'>',       // (imperfect) check for modifier key combo (e.g., <Ctrl + a>)
+    L'\u232B',  // backspace
+    L'\u2B7E',  // tab
+    L'\u23CE',  // enter
+    L'\u2190',  // left
+    L'\u2191',  // up
+    L'\u2192',  // right
+    L'\u2193',  // down
+    L'\u2326',  // delete
+};
+
 struct LabelSettings {
     DWORD keyStrokeDelay;
     DWORD lingerTime;
@@ -320,6 +332,19 @@ bool outOfLine(LPCWSTR text) {
     bool out = cx >= canvasSize.cx;
     return out;
 }
+
+bool isSpecialChar(WCHAR target) {
+    size_t size = sizeof(SPECIAL_KEYS) / sizeof(WCHAR);
+
+    for (size_t i = 0; i < size; ++i) {
+        if (SPECIAL_KEYS[i] == target) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /*
  * behavior 0: append text to last label
  * behavior 1: create a new label with text
@@ -339,50 +364,62 @@ void showText(LPCWSTR text, int behavior = 0) {
 #endif
 
     DWORD i;
-    if (behavior == 2) {
-        wcscpy_s(keyLabels[labelCount-1].text, textBufferEnd-keyLabels[labelCount-1].text, text);
-        keyLabels[labelCount-1].length = newLen;
-    } else if (behavior == 3) {
-        wcscpy_s(deferredLabel, 64, text);
-        deferredTime = 120;
-    } else if (behavior == 1 || (newStrokeCount <= 0) /* || outOfLine(text) */) {
-        for (i = 1; i < labelCount; i++) {
-            if(keyLabels[i].time > 0) {
-                break;
-            }
-        }
-        for (; i < labelCount; i++) {
-            eraseLabel(i-1);
-            keyLabels[i-1].text = keyLabels[i].text;
-            keyLabels[i-1].length = keyLabels[i].length;
-            keyLabels[i-1].time = keyLabels[i].time;
-            keyLabels[i-1].rect.X = keyLabels[i].rect.X;
-            keyLabels[i-1].fade = TRUE;
-            updateLabel(i-1);
-            eraseLabel(i);
-        }
-        if(labelCount > 1) {
-            keyLabels[labelCount-1].text = keyLabels[labelCount-2].text + keyLabels[labelCount-2].length;
-        }
-        if(keyLabels[labelCount-1].text+newLen >= textBufferEnd) {
-            keyLabels[labelCount-1].text = textBuffer;
-        }
-        wcscpy_s(keyLabels[labelCount-1].text, textBufferEnd-keyLabels[labelCount-1].text, text);
-        keyLabels[labelCount-1].length = newLen;
+
+    bool charIsBackspace = wcscmp(text, L"\u232B") == 0;
+    bool isSpecial = isSpecialChar(keyLabels[labelCount - 1].text[keyLabels[labelCount - 1].length - 1]);
+
+    // Delete last char in label if char is not backspace or special char (tab, return, etc.)
+    // Hacky, but also doesn't delete if last char is '>' (e.g., <Ctrl + a>)
+    if (charIsBackspace && !isSpecial && keyLabels[labelCount - 1].length > 0) {
+        keyLabels[labelCount - 1].text[keyLabels[labelCount - 1].length - 1] = L'\0';
+        keyLabels[labelCount - 1].length--;
     } else {
-        LPWSTR tmp = keyLabels[labelCount-1].text + keyLabels[labelCount-1].length;
-        if(tmp+newLen >= textBufferEnd) {
-            tmp = textBuffer;
-            keyLabels[labelCount-1].text = tmp;
-            keyLabels[labelCount-1].length = newLen;
+        if (behavior == 2) {
+            wcscpy_s(keyLabels[labelCount - 1].text, textBufferEnd - keyLabels[labelCount - 1].text, text);
+            keyLabels[labelCount - 1].length = newLen;
+        } else if (behavior == 3) {
+            wcscpy_s(deferredLabel, 64, text);
+            deferredTime = 120;
+        } else if (behavior == 1 || (newStrokeCount <= 0) /* || outOfLine(text) */) {
+            for (i = 1; i < labelCount; i++) {
+                if(keyLabels[i].time > 0) {
+                    break;
+                }
+            }
+            for (; i < labelCount; i++) {
+                eraseLabel(i - 1);
+                keyLabels[i - 1].text = keyLabels[i].text;
+                keyLabels[i - 1].length = keyLabels[i].length;
+                keyLabels[i - 1].time = keyLabels[i].time;
+                keyLabels[i - 1].rect.X = keyLabels[i].rect.X;
+                keyLabels[i - 1].fade = TRUE;
+                updateLabel(i - 1);
+                eraseLabel(i);
+            }
+            if(labelCount > 1) {
+                keyLabels[labelCount - 1].text = keyLabels[labelCount - 2].text + keyLabels[labelCount - 2].length;
+            }
+            if(keyLabels[labelCount - 1].text+newLen >= textBufferEnd) {
+                keyLabels[labelCount - 1].text = textBuffer;
+            }
+            wcscpy_s(keyLabels[labelCount - 1].text, textBufferEnd-keyLabels[labelCount - 1].text, text);
+            keyLabels[labelCount - 1].length = newLen;
         } else {
-            keyLabels[labelCount-1].length += newLen;
+            LPWSTR tmp = keyLabels[labelCount - 1].text + keyLabels[labelCount - 1].length;
+            if(tmp + newLen >= textBufferEnd) {
+                tmp = textBuffer;
+                keyLabels[labelCount - 1].text = tmp;
+                keyLabels[labelCount - 1].length = newLen;
+            } else {
+                keyLabels[labelCount - 1].length += newLen;
+            }
+            wcscpy_s(tmp, (textBufferEnd - tmp), text);
         }
-        wcscpy_s(tmp, (textBufferEnd-tmp), text);
     }
-    keyLabels[labelCount-1].time = labelSettings.lingerTime+labelSettings.fadeDuration;
-    keyLabels[labelCount-1].fade = TRUE;
-    updateLabel(labelCount-1);
+
+    keyLabels[labelCount - 1].time = labelSettings.lingerTime + labelSettings.fadeDuration;
+    keyLabels[labelCount - 1].fade = TRUE;
+    updateLabel(labelCount - 1);
     newStrokeCount = labelSettings.keyStrokeDelay;
     updateLayeredWindow(hMainWnd);
 }
