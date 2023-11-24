@@ -31,8 +31,8 @@ struct Key specialKeys[] = {
     {0x1E, L"Accept"},
     {0x1F, L"ModeChange"},
     {0x20, L"\u2423"},              // space
-    {0x21, L"PageUp"},
-    {0x22, L"PageDown"},
+    {0x21, L"PgUp"},
+    {0x22, L"PgDn"},
     {0x23, L"End"},
     {0x24, L"Home"},
     {0x25, L"\u2190"},              // left
@@ -44,7 +44,7 @@ struct Key specialKeys[] = {
     {0x2B, L"Execute"},
     {0x2C, L"Snapshot"},
     {0x2D, L"Insert"},
-    {0x2E, L"Delete"},
+    {0x2E, L"Del"},
     {0x2F, L"Help"},
     {0x5B, L"Win"},
     {0x5C, L"Win"},
