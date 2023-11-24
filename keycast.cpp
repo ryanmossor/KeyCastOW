@@ -60,6 +60,7 @@ struct LabelSettings {
     int borderSize;
     int cornerSize;
 };
+
 LabelSettings labelSettings, previewLabelSettings;
 DWORD labelSpacing;
 BOOL visibleShift = FALSE;
@@ -124,8 +125,8 @@ struct Displayed {
         len = l;
     }
 };
-DWORD WINAPI replay(LPVOID ptr)
-{
+
+DWORD WINAPI replay(LPVOID ptr) {
     replayStatus = 1;
     FILE *stream;
     WCHAR tmp[256];
@@ -146,6 +147,7 @@ DWORD WINAPI replay(LPVOID ptr)
     replayStatus = 0;
     return 0;
 }
+
 #include <sstream>
 WCHAR logFile[MAX_PATH];
 FILE *logStream;
@@ -153,6 +155,7 @@ void log(const std::stringstream & line) {
     fprintf(logStream,"%s",line.str().c_str());
 }
 #endif
+
 void stamp(HWND hwnd, LPCWSTR text) {
     RECT rt;
     GetWindowRect(hwnd,&rt);
@@ -196,6 +199,7 @@ void stamp(HWND hwnd, LPCWSTR text) {
     ::DeleteObject(memBitmap);
     ReleaseDC(hwnd, hdc);
 }
+
 void updateLayeredWindow(HWND hwnd) {
     POINT ptSrc = {0, 0};
     BLENDFUNCTION blendFunction;
@@ -209,6 +213,7 @@ void updateLayeredWindow(HWND hwnd) {
     ReleaseDC(hwnd, hdc);
     gCanvas->ReleaseHDC(hdcBuf);
 }
+
 void eraseLabel(int i) {
     RectF &rt = keyLabels[i].rect;
     RectF rc(rt.X-labelSettings.borderSize, rt.Y-labelSettings.borderSize, rt.Width+2*labelSettings.borderSize+1, rt.Height+2*labelSettings.borderSize+1);
@@ -216,6 +221,7 @@ void eraseLabel(int i) {
     gCanvas->Clear(clearColor);
     gCanvas->ResetClip();
 }
+
 void drawLabelFrame(Graphics* g, const Pen* pen, const Brush* brush, RectF &rc, REAL cornerSize) {
     if(cornerSize > 0) {
         GraphicsPath path;
@@ -233,6 +239,7 @@ void drawLabelFrame(Graphics* g, const Pen* pen, const Brush* brush, RectF &rc, 
         g->FillRectangle(brush, rc.X, rc.Y, rc.Width, rc.Height);
     }
 }
+
 #define BR(alpha, bgr) (alpha<<24|bgr>>16|(bgr&0x0000ff00)|(bgr&0x000000ff)<<16)
 void updateLabel(int i) {
     eraseLabel(i);
@@ -425,7 +432,7 @@ void showText(LPCWSTR text, int behavior = 0) {
 }
 
 void updateCanvasSize(const POINT &pt) {
-    for(DWORD i = 0; i < labelCount; i ++) {
+    for(DWORD i = 0; i < labelCount; i++) {
         if(keyLabels[i].time > 0) {
             eraseLabel(i);
             keyLabels[i].time = 0;
@@ -434,7 +441,7 @@ void updateCanvasSize(const POINT &pt) {
     canvasSize.cy = desktopRect.bottom - desktopRect.top;
     canvasOrigin.y = pt.y - desktopRect.bottom + desktopRect.top;
     canvasSize.cx = pt.x - desktopRect.left;
-    canvasOrigin.x = desktopRect.left;
+    canvasOrigin.x = desktopRect.left + 750; // TODO: make width of label configurable?
 
 #ifdef _DEBUG
     std::stringstream line;
@@ -445,6 +452,7 @@ void updateCanvasSize(const POINT &pt) {
     log(line);
 #endif
 }
+
 void createCanvas() {
     HDC hdc = GetDC(hMainWnd);
     HDC hdcBuffer = CreateCompatibleDC(hdc);
@@ -459,6 +467,7 @@ void createCanvas() {
     gCanvas->SetSmoothingMode(SmoothingModeAntiAlias);
     gCanvas->SetTextRenderingHint(TextRenderingHintAntiAlias);
 }
+
 void prepareLabels() {
     HDC hdc = GetDC(hMainWnd);
     HFONT hlabelFont = CreateFontIndirect(&labelSettings.font);
@@ -541,6 +550,7 @@ void positionOrigin(int action, POINT &pt) {
         gCanvas->Clear(clearColor);
     }
 }
+
 BOOL ColorDialog ( HWND hWnd, COLORREF &clr ) {
     DWORD dwCustClrs[16] = {
         RGB(0,0,0),
@@ -576,6 +586,7 @@ BOOL ColorDialog ( HWND hWnd, COLORREF &clr ) {
     }
     return TRUE;
 }
+
 HWND CreateToolTip(HWND hDlg, int toolID, LPWSTR pszText) {
     // Get the window of the tool.
     HWND hwndTool = GetDlgItem(hDlg, toolID);
@@ -603,11 +614,13 @@ HWND CreateToolTip(HWND hDlg, int toolID, LPWSTR pszText) {
 
     return hwndTip;
 }
+
 void writeSettingInt(LPCTSTR lpKeyName, DWORD dw) {
     WCHAR tmp[256];
     swprintf(tmp, 256, L"%d", dw);
     WritePrivateProfileString(L"KeyCastOW", lpKeyName, tmp, iniFile);
 }
+
 void saveSettings() {
     writeSettingInt(L"keyStrokeDelay", labelSettings.keyStrokeDelay);
     writeSettingInt(L"lingerTime", labelSettings.lingerTime);
@@ -644,6 +657,7 @@ void saveSettings() {
     WritePrivateProfileString(L"KeyCastOW", L"branding", branding, iniFile);
     WritePrivateProfileString(L"KeyCastOW", L"comboChars", comboChars, iniFile);
 }
+
 void fixDeskOrigin() {
     if(deskOrigin.x > desktopRect.right || deskOrigin.x < desktopRect.left + labelSettings.borderSize) {
         deskOrigin.x = desktopRect.right - labelSettings.borderSize;
@@ -652,6 +666,7 @@ void fixDeskOrigin() {
         deskOrigin.y = desktopRect.bottom;
     }
 }
+
 void loadSettings() {
     labelSettings.keyStrokeDelay = GetPrivateProfileInt(L"KeyCastOW", L"keyStrokeDelay", 500, iniFile);
     labelSettings.lingerTime = GetPrivateProfileInt(L"KeyCastOW", L"lingerTime", 1200, iniFile);
@@ -705,6 +720,7 @@ void loadSettings() {
     wcscpy_s(labelSettings.font.lfFaceName, LF_FACESIZE, TEXT("Arial Black"));
     GetPrivateProfileStruct(L"KeyCastOW", L"labelFont", &labelSettings.font, sizeof(labelSettings.font), iniFile);
 }
+
 void renderSettingsData(HWND hwndDlg) {
     WCHAR tmp[256];
     swprintf(tmp, 256, L"%d", previewLabelSettings.keyStrokeDelay);
@@ -746,6 +762,7 @@ void renderSettingsData(HWND hwndDlg) {
     SetDlgItemText(hwndDlg, IDC_TCKEY, tmp);
     ComboBox_SetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT), alignment);
 }
+
 void getLabelSettings(HWND hwndDlg, LabelSettings &lblSettings) {
     WCHAR tmp[256];
     GetDlgItemText(hwndDlg, IDC_KEYSTROKEDELAY, tmp, 256);
@@ -754,9 +771,9 @@ void getLabelSettings(HWND hwndDlg, LabelSettings &lblSettings) {
     lblSettings.lingerTime = _wtoi(tmp);
     GetDlgItemText(hwndDlg, IDC_FADEDURATION, tmp, 256);
     lblSettings.fadeDuration = _wtoi(tmp);
-    if(lblSettings.fadeDuration < SHOWTIMER_INTERVAL*5) {
-        lblSettings.fadeDuration = SHOWTIMER_INTERVAL*5;
-    }
+    // if(lblSettings.fadeDuration < SHOWTIMER_INTERVAL*5) {
+    //     lblSettings.fadeDuration = SHOWTIMER_INTERVAL*5;
+    // }
     GetDlgItemText(hwndDlg, IDC_BGOPACITY, tmp, 256);
     lblSettings.bgOpacity = _wtoi(tmp);
     lblSettings.bgOpacity = min(lblSettings.bgOpacity, 255);
@@ -771,6 +788,7 @@ void getLabelSettings(HWND hwndDlg, LabelSettings &lblSettings) {
     GetDlgItemText(hwndDlg, IDC_CORNERSIZE, tmp, 256);
     lblSettings.cornerSize = _wtoi(tmp);
 }
+
 DWORD previewTime = 0;
 #define PREVIEWTIMER_INTERVAL 5
 static void previewLabel() {
@@ -830,8 +848,7 @@ static void previewLabel() {
     ReleaseDC(hDlgSettings, hdc);
 }
 
-BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
-{
+BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
     WCHAR tmp[256];
     switch (msg)
     {
@@ -976,6 +993,7 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
     }
     return FALSE;
 }
+
 LRESULT CALLBACK DraggableWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     static POINT s_last_mouse;
     switch(message)
@@ -1032,7 +1050,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 nid.uFlags              = NIF_ICON | NIF_MESSAGE | NIF_TIP;
                 nid.uCallbackMessage    = WM_TRAYMSG;
                 nid.hIcon = LoadIcon( hInstance, MAKEINTRESOURCE(IDI_ICON1));
-                lstrcpy( nid.szTip, L"KeyCast On Windows by brook hong" );
+                lstrcpy( nid.szTip, L"KeyCastOW" );
                 Shell_NotifyIcon( NIM_ADD, &nid );
 
                 hPopMenu = CreatePopupMenu();
@@ -1158,6 +1176,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     }
     return 0;
 }
+
 ATOM MyRegisterClassEx(HINSTANCE hInst, LPCWSTR className, WNDPROC wndProc) {
     WNDCLASSEX wcl;
     wcl.cbSize = sizeof(WNDCLASSEX);
@@ -1175,6 +1194,7 @@ ATOM MyRegisterClassEx(HINSTANCE hInst, LPCWSTR className, WNDPROC wndProc) {
 
     return RegisterClassEx(&wcl);
 }
+
 void CreateMiniDump( LPEXCEPTION_POINTERS lpExceptionInfo) {
     // Open a file
     HANDLE hFile = CreateFile(L"MiniDump.dmp", GENERIC_READ | GENERIC_WRITE,
@@ -1206,14 +1226,12 @@ void CreateMiniDump( LPEXCEPTION_POINTERS lpExceptionInfo) {
     }
 }
 
-LONG __stdcall MyUnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionInfo)
-{
+LONG __stdcall MyUnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionInfo) {
     CreateMiniDump(pExceptionInfo);
     return EXCEPTION_EXECUTE_HANDLER;
 }
-int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst,
-        LPSTR lpszArgs, int nWinMode)
-{
+
+int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst, LPSTR lpszArgs, int nWinMode) {
     MSG        msg;
 
     hInstance = hThisInst;
@@ -1302,13 +1320,13 @@ int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst,
     while( GetMessage(&msg, NULL, 0, 0) )    {
         if (msg.message == WM_HOTKEY) {
             if(kbdhook) {
-                showText(L"\u263b - KeyCastOW OFF", 0);
+                showText(L"\u2716", 2);     // disable key display
                 UnhookWindowsHookEx(kbdhook);
                 kbdhook = NULL;
                 UnhookWindowsHookEx(moshook);
                 moshook = NULL;
             } else {
-                showText(L"\u263b - KeyCastOW ON", 0);
+                showText(L"\u2714", 2);     // enable key display
                 kbdhook = SetWindowsHookEx(WH_KEYBOARD_LL, LLKeyboardProc, hInstance, NULL);
                 moshook = SetWindowsHookEx(WH_MOUSE_LL, LLMouseProc, hThisInst, 0);
             }
