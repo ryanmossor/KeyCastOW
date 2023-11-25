@@ -175,7 +175,7 @@ extern WCHAR comboChars[3];
 extern BOOL positioning;
 extern WCHAR deferredLabel[64];
 HHOOK kbdhook, moshook;
-void showText(LPCWSTR text, int behavior = 0);
+void showText(LPCWSTR text, DisplayBehavior behavior = AppendToLastLabel);
 void fadeLastLabel(BOOL weither);
 void positionOrigin(int action, POINT &pt);
 
@@ -340,9 +340,9 @@ LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp)
                 swprintf(c, 64, L"%s", modifierkey);
                 addBracket(c);
                 if(lastvk == k.vkCode) {
-                    showText(c, 0);
+                    showText(c, AppendToLastLabel);
                 } else {
-                    showText(c, 0);
+                    showText(c, AppendToLastLabel);
                 }
             }
         } else {
@@ -367,7 +367,7 @@ LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp)
                     theKey = tmp;
                 }
                 if(fin || !onlyCommandKeys) {
-                    showText(theKey, 0);
+                    showText(theKey, AppendToLastLabel);
                 }
             }
         }
@@ -452,15 +452,15 @@ LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp)
                 modifierUsed = TRUE;
                 swprintf(tmp, 64, L"%s %c %s", modifierkey, comboChars[1], c);
                 addBracket(tmp);
-                showText(tmp, 0);
+                showText(tmp, AppendToLastLabel);
             } else if(GetKeyState(VK_SHIFT) < 0) {
                 swprintf(tmp, 64, L"Shift %c %s", comboChars[1], c);
                 addBracket(tmp);
-                showText(tmp, 0);
+                showText(tmp, AppendToLastLabel);
             } else if(!mouseCapturingMod) {
                 swprintf(tmp, 64, L"%s", c);
                 addBracket(tmp);
-                showText(tmp, 0);
+                showText(tmp, AppendToLastLabel);
             }
 
             fadeLastLabel(!holdButton);

@@ -107,7 +107,7 @@ Font * fontPlus = NULL;
 #define MENU_EXIT      33
 #define MENU_RESTORE   34
 
-void showText(LPCWSTR text, int behavior);
+void showText(LPCWSTR text, DisplayBehavior behavior);
 
 #ifdef _DEBUG
 WCHAR capFile[MAX_PATH];
@@ -134,14 +134,14 @@ DWORD WINAPI replay(LPVOID ptr) {
     Displayed dp(0, 0, 0);
     fread(&dp, sizeof(Displayed), 1, stream);
     fread(tmp, sizeof(WCHAR), dp.len, stream);
-    showText(tmp, 0);
+    showText(tmp, AppendToLastLabel);
     DWORD lastTm = dp.tm;
     while(replayStatus == 1 && fread(&dp, sizeof(Displayed), 1, stream) == 1) {
         Sleep(dp.tm - lastTm);
         lastTm = dp.tm;
         fread(tmp, sizeof(WCHAR), dp.len, stream);
         tmp[dp.len] = '\0';
-        showText(tmp, 0);
+        showText(tmp, AppendToLastLabel);
     }
     fclose(stream);
     replayStatus = 0;
@@ -291,7 +291,7 @@ static void startFade() {
         if (deferredTime > 0) {
             deferredTime -= SHOWTIMER_INTERVAL;
         } else {
-            showText(deferredLabel, 0);
+            showText(deferredLabel, AppendToLastLabel);
             fadeLastLabel(FALSE);
             deferredLabel[0] = '\0';
         }
@@ -356,8 +356,9 @@ bool isSpecialChar(WCHAR target) {
  * behavior 0: append text to last label
  * behavior 1: create a new label with text
  * behavior 2: replace last label with text
+ * behavior 3: show label later
  */
-void showText(LPCWSTR text, int behavior = 0) {
+void showText(LPCWSTR text, DisplayBehavior behavior = AppendToLastLabel) {
     SetWindowPos(hMainWnd,HWND_TOPMOST,0,0,0,0,SWP_NOSIZE|SWP_NOMOVE|SWP_NOACTIVATE);
     size_t newLen = wcslen(text);
 
@@ -381,13 +382,13 @@ void showText(LPCWSTR text, int behavior = 0) {
         keyLabels[labelCount - 1].text[keyLabels[labelCount - 1].length - 1] = L'\0';
         keyLabels[labelCount - 1].length--;
     } else {
-        if (behavior == 2) {
+        if (behavior == ReplaceLastLabel) {
             wcscpy_s(keyLabels[labelCount - 1].text, textBufferEnd - keyLabels[labelCount - 1].text, text);
             keyLabels[labelCount - 1].length = newLen;
-        } else if (behavior == 3) {
+        } else if (behavior == ShowLabelLater) {
             wcscpy_s(deferredLabel, 64, text);
             deferredTime = 120;
-        } else if (behavior == 1 || (newStrokeCount <= 0) /* || outOfLine(text) */) {
+        } else if (behavior == CreateNewLabel || (newStrokeCount <= 0) /* || outOfLine(text) */) {
             for (i = 1; i < labelCount; i++) {
                 if(keyLabels[i].time > 0) {
                     break;
@@ -540,7 +541,7 @@ void positionOrigin(int action, POINT &pt) {
 #endif
         WCHAR tmp[256];
         swprintf(tmp, 256, L"%d, %d", pt.x, pt.y);
-        showText(tmp, 0);
+        showText(tmp, AppendToLastLabel);
     } else {
         positioning = FALSE;
         deskOrigin.x = pt.x;
@@ -932,7 +933,7 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
                         alignment = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT));
                         clearColor.SetValue(0x7f7f7f7f);
                         gCanvas->Clear(clearColor);
-                        showText(L"\u254b", 0);
+                        showText(L"\u254b", AppendToLastLabel);
                         fadeLastLabel(FALSE);
                         positioning = TRUE;
                     }
@@ -1320,13 +1321,13 @@ int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst, LPSTR lpszArgs, int
     while( GetMessage(&msg, NULL, 0, 0) )    {
         if (msg.message == WM_HOTKEY) {
             if(kbdhook) {
-                showText(L"\u2716", 2);     // disable key display
+                showText(L"\u2716", ReplaceLastLabel);     // disable key display
                 UnhookWindowsHookEx(kbdhook);
                 kbdhook = NULL;
                 UnhookWindowsHookEx(moshook);
                 moshook = NULL;
             } else {
-                showText(L"\u2714", 2);     // enable key display
+                showText(L"\u2714", ReplaceLastLabel);     // enable key display
                 kbdhook = SetWindowsHookEx(WH_KEYBOARD_LL, LLKeyboardProc, hInstance, NULL);
                 moshook = SetWindowsHookEx(WH_MOUSE_LL, LLMouseProc, hThisInst, 0);
             }

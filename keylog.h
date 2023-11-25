@@ -10,4 +10,11 @@ extern HHOOK moshook;
 LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp);
 LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp);
 
+enum DisplayBehavior {
+    AppendToLastLabel,
+    CreateNewLabel,
+    ReplaceLastLabel,
+    ShowLabelLater
+};
+
 #endif // KEYLOG_H_INCLUDED
