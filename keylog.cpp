@@ -11,6 +11,7 @@ struct Key {
     int val;
     LPCWSTR label;
 };
+
 struct Key specialKeys[] = {
     {0x08, L"\u232B"},              // backspace
     {0x09, L"\u2B7E"},              // tab
@@ -151,11 +152,13 @@ LPCWSTR mouseActions[] = {
     L"XButtonDBLCLK",
     L"MouseHWheel"
 };
+
 LPCWSTR mouseClicks[] = {
     L"LClick",
     L"RClick",
     L"MClick"
 };
+
 LPCWSTR mouseDblClicks[] = {
     L"LDblClick",
     L"RDblClick",
@@ -183,32 +186,33 @@ void positionOrigin(int action, POINT &pt);
 #include <sstream>
 void log(const std::stringstream & line);
 #endif
-LPCWSTR GetSymbolFromVK(UINT vk, UINT sc, BOOL mod, HKL hklLayout) {
+
+LPCWSTR GetSymbolFromVirtualKey(UINT virtualKey, UINT sc, BOOL mod, HKL hklLayout) {
     static WCHAR symbol[32];
     BYTE btKeyState[256];
     WORD Symbol = 0;
     WCHAR cc[2];
-    if(mod) {
+    if (mod) {
         ZeroMemory(btKeyState, sizeof(btKeyState));
     } else {
         for(int i = 0; i < 256; i++) {
             btKeyState[i] = (BYTE)GetKeyState(i);
         }
     }
-    int rr = ToUnicodeEx(vk, sc, btKeyState, cc, 2, 0, hklLayout);
+    int rr = ToUnicodeEx(virtualKey, sc, btKeyState, cc, 2, 0, hklLayout);
 #ifdef _DEBUG
     WCHAR ss[KL_NAMELENGTH];
     GetKeyboardLayoutName(ss);
     std::wstring wide(ss);
     std::string str( wide.begin(), wide.end() );
     std::stringstream line;
-    line << vk << ":" << rr << ":" << sc << "\n";
+    line << virtualKey << ":" << rr << ":" << sc << "\n";
     // log(line);
 #endif
-    if(rr > 0) {
-        if(!visibleShift && mod && GetKeyState(VK_SHIFT) < 0) {
-            // prefix "Shift - " only when Ctrl or Alt is hold (mod as TRUE)
-            swprintf(symbol, 32, L"Shift %c %s", comboChars[1], cc);
+    if (rr > 0) {
+        if (!visibleShift && mod && GetKeyState(VK_SHIFT) < 0) {
+            // prefix "Shift+" only when Ctrl or Alt is hold (mod as TRUE)
+            swprintf(symbol, 32, L"Shift%c%s", comboChars[1], cc);
         } else {
             swprintf(symbol, 32, L"%s", cc);
             symbol[rr] = L'\0';
@@ -217,27 +221,30 @@ LPCWSTR GetSymbolFromVK(UINT vk, UINT sc, BOOL mod, HKL hklLayout) {
     }
     return NULL;
 }
-LPCWSTR getSpecialKey(UINT vk) {
+
+LPCWSTR getSpecialKey(UINT virtualKey) {
     static WCHAR unknown[32];
-    for (size_t i=0; i < nSpecialKeys; ++i) {
-        if(specialKeys[i].val == vk) {
+    for (size_t i = 0; i < nSpecialKeys; ++i) {
+        if (specialKeys[i].val == virtualKey) {
             return specialKeys[i].label;
         }
     }
-    swprintf(unknown, 32, L"0x%02x", vk);
+    swprintf(unknown, 32, L"0x%02x", virtualKey);
     return unknown;
 }
+
 void addBracket(LPWSTR str) {
     WCHAR tmp[64];
-    if(wcslen(comboChars) > 2) {
+    if (wcslen(comboChars) > 2) {
         swprintf(tmp, 64, L"%s", str);
         swprintf(str, 64, L"%c%s%c", comboChars[0], tmp, comboChars[2]);
     }
 }
-LPCWSTR getModSpecialKey(UINT vk, BOOL mod = FALSE) {
+
+LPCWSTR getModSpecialKey(UINT virtualKey, BOOL mod = FALSE) {
     static WCHAR modsk[64];
-    if( vk == 0xA0 || vk == 0xA1) {
-        if(!mod) {
+    if (virtualKey == 0xA0 || virtualKey == 0xA1) {
+        if (!mod) {
             // show nothing if press SHIFT only
             return NULL;
         } else {
@@ -245,60 +252,62 @@ LPCWSTR getModSpecialKey(UINT vk, BOOL mod = FALSE) {
         }
     } else {
         WCHAR tmp[64];
-        LPCWSTR sk = getSpecialKey(vk);
-        if(!visibleShift && GetKeyState(VK_SHIFT) < 0) {
-            // prefix "Shift - "
-            swprintf(tmp, 64, L"Shift %c %s", comboChars[1], sk);
-            sk= tmp;
+        LPCWSTR specialKey = getSpecialKey(virtualKey);
+
+        if (!visibleShift && GetKeyState(VK_SHIFT) < 0) {
+            // prefix "Shift+"
+            swprintf(tmp, 64, L"Shift%c%s", comboChars[1], specialKey);
+            specialKey = tmp;
         }
-        if(!mod && HIBYTE(sk[0]) == 0) {
-            // if the special key is not used with modifierkey, and has not been replaced with visible symbol
-            // then surround it with <>
-            swprintf(modsk, 64, L"%s", sk);
+
+        if (!mod && HIBYTE(specialKey[0]) == 0) {
+            // if the special key is not used with modifierkey, and has not been
+            // replaced with visible symbol then surround it with <>
+            swprintf(modsk, 64, L"%s", specialKey);
             addBracket(modsk);
         } else {
-            swprintf(modsk, 64, L"%s", sk);
+            swprintf(modsk, 64, L"%s", specialKey);
         }
     }
 
     return modsk;
 }
 
-// remove a modifier vk from modifierkeys
-// for example, remove "Alt" from "Ctrl - Alt"
-void cleanModifier(UINT vk, LPWSTR modifierkeys) {
+// remove a modifier virtualKey from modifierkeys
+// for example, remove "Alt" from "Ctrl+Alt"
+void cleanModifier(UINT virtualKey, LPWSTR modifierkeys) {
     WCHAR tmp[64];
-    LPCWSTR ck = getSpecialKey(vk);
-    LPWSTR p = wcsstr(modifierkeys, ck);
-    if(p == modifierkeys) {
-        if(wcslen(modifierkeys) == wcslen(p)) {
+    LPCWSTR currentKey = getSpecialKey(virtualKey);
+    LPWSTR ptr = wcsstr(modifierkeys, currentKey);
+    if (ptr == modifierkeys) {
+        if (wcslen(modifierkeys) == wcslen(ptr)) {
             // current key is the only modifier
             modifierkeys[0] = '\0';
         } else {
-            // remove current key and the " - " after it
-            // sizeof(" - ") == 4
-            wcscpy_s(tmp, 64, modifierkeys+wcslen(ck)+4);
+            // remove current key and the "+" after it
+            // sizeof("+") == 2
+            wcscpy_s(tmp, 64, modifierkeys + wcslen(currentKey) + 2);
             wcscpy_s(modifierkeys, 64, tmp);
         }
-    } else if(p) {
+    } else if (ptr) {
         // get rid of all after current key including the delimiter
-        *(p-3) = '\0';
+        *(ptr - 3) = '\0';
     }
 }
 
 static WCHAR modifierkey[64] = L"\0";
 static BOOL modifierUsed = FALSE;
-LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp)
-{
+
+LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp) {
     KBDLLHOOKSTRUCT k = *(KBDLLHOOKSTRUCT *)lp;
     WCHAR c[64] = L"\0";
     WCHAR tmp[64] = L"\0";
     const WCHAR * theKey = NULL;
 
-    if(nCode < 0)
+    if (nCode < 0)
         return CallNextHookEx(kbdhook, nCode, wp, lp);
 
-    static DWORD lastvk = 0;
+    static DWORD lastVirtualKey = 0;
     UINT spk = visibleShift ? 0xA0 : 0xA2;
     GUITHREADINFO Gti;
     ::ZeroMemory ( &Gti,sizeof(GUITHREADINFO));
@@ -307,39 +316,39 @@ LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp)
     DWORD dwThread = ::GetWindowThreadProcessId(Gti.hwndActive, 0);
     HKL hklLayout = ::GetKeyboardLayout(dwThread);
     UINT isDeadKey = ((MapVirtualKeyEx(k.vkCode, MAPVK_VK_TO_CHAR, hklLayout) & 0x80000000) >> 31);
-    if(isDeadKey) {
+    if (isDeadKey) {
         // GetKeyboardState(btKeyState);
         // for(int i = 0; i < 256; i++) {
             // btKeyState[i] = (BYTE)GetKeyState(i);
         // }
         // deadKeyPressed = TRUE;
-    } else if(wp == WM_KEYUP || wp == WM_SYSKEYUP) {
-        lastvk = 0;
+    } else if (wp == WM_KEYUP || wp == WM_SYSKEYUP) {
+        lastVirtualKey = 0;
         fadeLastLabel(TRUE);
-        if(k.vkCode >= spk && k.vkCode <= 0xA5 ||
+        if (k.vkCode >= spk && k.vkCode <= 0xA5 ||
                 k.vkCode == 0x5B || k.vkCode == 0x5C) {
             cleanModifier(k.vkCode, modifierkey);
             modifierUsed = FALSE;
         }
-    } else if(wp == WM_KEYDOWN || wp == WM_SYSKEYDOWN) {
-        if(!keyAutoRepeat && lastvk == k.vkCode) {
+    } else if (wp == WM_KEYDOWN || wp == WM_SYSKEYDOWN) {
+        if (!keyAutoRepeat && lastVirtualKey == k.vkCode) {
             fadeLastLabel(FALSE);
             return TRUE;
         }
         int fin = 0;
-        if(k.vkCode >= spk && k.vkCode <= 0xA5 ||          // ctrl / alt
+        if (k.vkCode >= spk && k.vkCode <= 0xA5 ||          // ctrl / alt
                 k.vkCode == 0x5B || k.vkCode == 0x5C) {     // win
             LPCWSTR ck = getSpecialKey(k.vkCode);
-            if(modifierkey[0] == '\0') {
+            if (modifierkey[0] == '\0') {
                 wcscpy_s(modifierkey, 64, ck);
-            } else if(!wcsstr(modifierkey, ck)) {
+            } else if (!wcsstr(modifierkey, ck)) {
                 wcscpy_s(tmp, 64, modifierkey);
-                swprintf(modifierkey, 64, L"%s %c %s", tmp, comboChars[1], ck);
+                swprintf(modifierkey, 64, L"%s%c%s", tmp, comboChars[1], ck);
             }
-            if(!modifierUsed && visibleModifier) {
+            if (!modifierUsed && visibleModifier) {
                 swprintf(c, 64, L"%s", modifierkey);
                 addBracket(c);
-                if(lastvk == k.vkCode) {
+                if (lastVirtualKey == k.vkCode) {
                     showText(c, AppendToLastLabel);
                 } else {
                     showText(c, AppendToLastLabel);
@@ -348,37 +357,36 @@ LRESULT CALLBACK LLKeyboardProc(int nCode, WPARAM wp, LPARAM lp)
         } else {
             WORD a = 0;
             BOOL mod = modifierkey[0] != '\0';
-            if(k.vkCode == 0x08 || k.vkCode == 0x09 || k.vkCode == 0x0D || k.vkCode == 0x1B || k.vkCode == 0x20) {
+            if (k.vkCode == 0x08 || k.vkCode == 0x09 || k.vkCode == 0x0D || k.vkCode == 0x1B || k.vkCode == 0x20) {
                 // for <BS>/<Tab>/<ENTER>/<ESC>/<SPACE>, treat them as specialKeys
                 theKey = getModSpecialKey(k.vkCode, mod);
                 fin = 1;
-            } else if( !(theKey = GetSymbolFromVK(k.vkCode, k.scanCode, mod, hklLayout))) {
+            } else if (!(theKey = GetSymbolFromVirtualKey(k.vkCode, k.scanCode, mod, hklLayout))) {
                 // otherwise try to translate with ToAsciiEx
                 // if fails to translate with ToAsciiEx, then treat it as specialKeys
                 theKey = getModSpecialKey(k.vkCode, mod);
                 fin = 1;
             }
 
-            if(theKey) {
-                if(mod) {
+            if (theKey) {
+                if (mod) {
                     fin = 1;
-                    swprintf(tmp, 64, L"%s %c %s", modifierkey, comboChars[1], theKey);
+                    swprintf(tmp, 64, L"%s%c%s", modifierkey, comboChars[1], theKey);
                     addBracket(tmp);
                     theKey = tmp;
                 }
-                if(fin || !onlyCommandKeys) {
+                if (fin || !onlyCommandKeys) {
                     showText(theKey, AppendToLastLabel);
                 }
             }
         }
-        lastvk = k.vkCode;
+        lastVirtualKey = k.vkCode;
     }
 
     return CallNextHookEx(kbdhook, nCode, wp, lp);
 }
 
-LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp)
-{
+LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp) {
     WCHAR c[64] = L"\0";
     WCHAR tmp[64] = L"\0";
 
@@ -387,23 +395,23 @@ LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp)
     static DWORD mouseButtonDown = 0;
     static DWORD lastClick = 0;
     BOOL holdButton = FALSE;
-    if(positioning) {
+    if (positioning) {
         MSLLHOOKSTRUCT* ms = reinterpret_cast<MSLLHOOKSTRUCT*>(lp);
         positionOrigin(idx, ms->pt);
     } else if ((mouseCapturing || mouseCapturingMod) && idx > 0 && idx < nMouseActions && nCode == HC_ACTION) {
         MSLLHOOKSTRUCT* ms = reinterpret_cast<MSLLHOOKSTRUCT*>(lp);
 
         if (!(ms->flags & LLMHF_INJECTED)) {
-            if(idx == 10) {
+            if (idx == 10) {
                 swprintf(c, 64, (int)(ms->mouseData) > 0 ? L"%sUp" : L"%sDown", mouseActions[idx]);
-            } else if(mergeMouseActions) {
+            } else if (mergeMouseActions) {
                 switch (idx) {
                     case 1:
                     case 4:
                     case 7:
                         swprintf(c, 64, mouseActions[idx]);
                         mouseButtonDown = GetTickCount();
-                        if(lastClick > 0 && (GetTickCount() - lastClick) <= GetDoubleClickTime()) {
+                        if (lastClick > 0 && (GetTickCount() - lastClick) <= GetDoubleClickTime()) {
                             behavior = 3;
                             // clear deferred label like LButtonDown/RButtonDown/MButtonDown
                             deferredLabel[0] = '\0';
@@ -415,15 +423,15 @@ LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp)
                     case 2:
                     case 5:
                     case 8:
-                        if(GetTickCount() - mouseButtonDown > 200) {
+                        if (GetTickCount() - mouseButtonDown > 200) {
                             swprintf(c, 64, mouseActions[idx]);
                             lastClick = 0;
                         } else {
                             behavior = 2;
                             // clear deferred label like LButtonDown/RButtonDown/MButtonDown
                             deferredLabel[0] = '\0';
-                            if(lastClick > 0) {
-                                if((GetTickCount() - lastClick) <= GetDoubleClickTime()) {
+                            if (lastClick > 0) {
+                                if ((GetTickCount() - lastClick) <= GetDoubleClickTime()) {
                                     swprintf(c, 64, mouseDblClicks[(idx-2)/3]);
                                 } else {
                                     swprintf(c, 64, mouseClicks[(idx-2)/3]);
@@ -448,16 +456,16 @@ LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp)
                 }
             }
 
-            if(modifierkey[0] != '\0') {
+            if (modifierkey[0] != '\0') {
                 modifierUsed = TRUE;
-                swprintf(tmp, 64, L"%s %c %s", modifierkey, comboChars[1], c);
+                swprintf(tmp, 64, L"%s%c%s", modifierkey, comboChars[1], c);
                 addBracket(tmp);
                 showText(tmp, AppendToLastLabel);
-            } else if(GetKeyState(VK_SHIFT) < 0) {
-                swprintf(tmp, 64, L"Shift %c %s", comboChars[1], c);
+            } else if (GetKeyState(VK_SHIFT) < 0) {
+                swprintf(tmp, 64, L"Shift%c%s", comboChars[1], c);
                 addBracket(tmp);
                 showText(tmp, AppendToLastLabel);
-            } else if(!mouseCapturingMod) {
+            } else if (!mouseCapturingMod) {
                 swprintf(tmp, 64, L"%s", c);
                 addBracket(tmp);
                 showText(tmp, AppendToLastLabel);
