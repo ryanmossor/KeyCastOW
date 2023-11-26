@@ -284,12 +284,6 @@ bool isSpecialChar(WCHAR target) {
     return false;
 }
 
-/*
- * behavior 0: append text to last label
- * behavior 1: create a new label with text
- * behavior 2: replace last label with text
- * behavior 3: show label later
- */
 void showText(LPCWSTR text, DisplayBehavior behavior = AppendToLastLabel) {
     SetWindowPos(hMainWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
     size_t newLen = wcslen(text);
@@ -315,48 +309,43 @@ void showText(LPCWSTR text, DisplayBehavior behavior = AppendToLastLabel) {
     if (currentIsBackspace && !lastIsSpecial && keyLabels[labelCount - 1].length > 0) {
         last = L'\0';
         keyLabels[labelCount - 1].length--;
-    } else {
-        if (behavior == ReplaceLastLabel) {
-            wcscpy_s(keyLabels[labelCount - 1].text, textBufferEnd - keyLabels[labelCount - 1].text, text);
-            keyLabels[labelCount - 1].length = newLen;
-        } else if (behavior == ShowLabelLater) {
-            wcscpy_s(deferredLabel, 64, text);
-            deferredTime = 120;
-        } else if (behavior == CreateNewLabel || (newStrokeCount <= 0) /* || outOfLine(text) */) {
-            for (i = 1; i < labelCount; i++) {
-                if (keyLabels[i].time > 0) {
-                    break;
-                }
+    } else if (behavior == ReplaceLastLabel) {
+        wcscpy_s(keyLabels[labelCount - 1].text, textBufferEnd - keyLabels[labelCount - 1].text, text);
+        keyLabels[labelCount - 1].length = newLen;
+    } else if (newStrokeCount <= 0) {
+        for (i = 1; i < labelCount; i++) {
+            if (keyLabels[i].time > 0) {
+                break;
             }
-            for (; i < labelCount; i++) {
-                eraseLabel(i - 1);
-                keyLabels[i - 1].text = keyLabels[i].text;
-                keyLabels[i - 1].length = keyLabels[i].length;
-                keyLabels[i - 1].time = keyLabels[i].time;
-                keyLabels[i - 1].rect.X = keyLabels[i].rect.X;
-                keyLabels[i - 1].fade = TRUE;
-                updateLabel(i - 1);
-                eraseLabel(i);
-            }
-            if (labelCount > 1) {
-                keyLabels[labelCount - 1].text = keyLabels[labelCount - 2].text + keyLabels[labelCount - 2].length;
-            }
-            if (keyLabels[labelCount - 1].text+newLen >= textBufferEnd) {
-                keyLabels[labelCount - 1].text = textBuffer;
-            }
-            wcscpy_s(keyLabels[labelCount - 1].text, textBufferEnd-keyLabels[labelCount - 1].text, text);
+        }
+        for (; i < labelCount; i++) {
+            eraseLabel(i - 1);
+            keyLabels[i - 1].text = keyLabels[i].text;
+            keyLabels[i - 1].length = keyLabels[i].length;
+            keyLabels[i - 1].time = keyLabels[i].time;
+            keyLabels[i - 1].rect.X = keyLabels[i].rect.X;
+            keyLabels[i - 1].fade = TRUE;
+            updateLabel(i - 1);
+            eraseLabel(i);
+        }
+        if (labelCount > 1) {
+            keyLabels[labelCount - 1].text = keyLabels[labelCount - 2].text + keyLabels[labelCount - 2].length;
+        }
+        if (keyLabels[labelCount - 1].text+newLen >= textBufferEnd) {
+            keyLabels[labelCount - 1].text = textBuffer;
+        }
+        wcscpy_s(keyLabels[labelCount - 1].text, textBufferEnd - keyLabels[labelCount - 1].text, text);
+        keyLabels[labelCount - 1].length = newLen;
+    } else if (behavior == AppendToLastLabel) {
+        LPWSTR tmp = keyLabels[labelCount - 1].text + keyLabels[labelCount - 1].length;
+        if (tmp + newLen >= textBufferEnd) {
+            tmp = textBuffer;
+            keyLabels[labelCount - 1].text = tmp;
             keyLabels[labelCount - 1].length = newLen;
         } else {
-            LPWSTR tmp = keyLabels[labelCount - 1].text + keyLabels[labelCount - 1].length;
-            if (tmp + newLen >= textBufferEnd) {
-                tmp = textBuffer;
-                keyLabels[labelCount - 1].text = tmp;
-                keyLabels[labelCount - 1].length = newLen;
-            } else {
-                keyLabels[labelCount - 1].length += newLen;
-            }
-            wcscpy_s(tmp, (textBufferEnd - tmp), text);
+            keyLabels[labelCount - 1].length += newLen;
         }
+        wcscpy_s(tmp, (textBufferEnd - tmp), text);
     }
 
     keyLabels[labelCount - 1].time = labelSettings.lingerTime + labelSettings.fadeDuration;

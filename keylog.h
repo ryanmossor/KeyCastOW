@@ -12,9 +12,7 @@ LRESULT CALLBACK LLMouseProc(int nCode, WPARAM wp, LPARAM lp);
 
 enum DisplayBehavior {
     AppendToLastLabel,
-    CreateNewLabel,
     ReplaceLastLabel,
-    ShowLabelLater
 };
 
 #endif // KEYLOG_H_INCLUDED
