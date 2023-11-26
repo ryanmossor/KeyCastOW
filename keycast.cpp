@@ -193,7 +193,7 @@ void updateLabel(int i) {
             rc.X = (REAL)0;
         }
 
-        int bgAlpha = (int)(r * labelSettings.bgOpacity);
+        int bgAlpha = (int)(r * labelSettings.bgOpacity * 2.55);
         int textAlpha = (int)(r * labelSettings.textOpacity);
         Pen penPlus(Color::Color(BR(0, 0)), 0.0f);
         SolidBrush brushPlus(Color::Color(BR(bgAlpha, labelSettings.bgColor)));
@@ -594,7 +594,7 @@ void loadSettings() {
     labelSettings.fadeDuration = GetPrivateProfileInt(L"KeyCastOW", L"fadeDuration", 100, iniFile);
     labelSettings.bgColor = GetPrivateProfileInt(L"KeyCastOW", L"bgColor", RGB(0, 0, 0), iniFile);
     labelSettings.textColor = GetPrivateProfileInt(L"KeyCastOW", L"textColor", RGB(255, 255, 255), iniFile);
-    labelSettings.bgOpacity = GetPrivateProfileInt(L"KeyCastOW", L"bgOpacity", 230, iniFile);
+    labelSettings.bgOpacity = GetPrivateProfileInt(L"KeyCastOW", L"bgOpacity", 80, iniFile);
     deskOrigin.x = GetPrivateProfileInt(L"KeyCastOW", L"offsetX", 1168, iniFile);
     deskOrigin.y = GetPrivateProfileInt(L"KeyCastOW", L"offsetY", 160, iniFile);
     MONITORINFO mi;
