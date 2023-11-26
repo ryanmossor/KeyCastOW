@@ -7,12 +7,12 @@ Keystroke visualizer for Windows. This fork makes some changes inspired by [Scre
 ## Changes From Original
 
 Keystrokes are now displayed using only a single display label, rather than certain keys/mouse actions creating new display labels. 
-  - Keystrokes will always be appended to the current display label unless the keyboard combination to toggle capturing (default: <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>K</kbd>) is pressed, in which case the label will be overwritten with a &#10006; or &#10004; to indicate the status of the program.
+  - Keystrokes will always be appended to the current display label unless the keyboard combination to toggle capturing (default: <kbd>Win + Shift + K</kbd>) is pressed, in which case the label will be overwritten with a &#10006; or &#10004; to indicate the status of the program.
 
-Pressing <kbd>Backspace</kbd> will now delete the last character in the display label if the last character is not a special character (e.g., <kbd>&#11134;</kbd>, <kbd>&#8629;</kbd>, <kbd>F1</kbd>) or key combination (e.g., <kbd>Ctrl</kbd> + <kbd>a</kbd>).
-  - If the last character in the display label is a special character or key combination, <kbd>&#9003;</kbd> will be displayed instead of deleting the character.
+Pressing <kbd>Backspace</kbd> will now delete the last character in the display label if the last character is not a special character (e.g., <kbd>Tab</kbd>, <kbd>Enter</kbd>, <kbd>F1</kbd>) or key combination (e.g., <kbd>Ctrl + a</kbd>).
+  - If the last character in the display label is a special character or key combination, the Unicode symbol for <kbd>Backspace</kbd> will be displayed instead of deleting the character.
 
-<kbd>Backspace</kbd>, <kbd>Tab</kbd>, <kbd>Enter</kbd>, and <kbd>Space</kbd> have been replaced with their respective Unicode symbols (<kbd>&#9003;</kbd>, <kbd>&#11134;</kbd>, <kbd>&#8629;</kbd>, and <kbd>&#9251;</kbd>).
+<kbd>Backspace</kbd>, <kbd>Tab</kbd>, <kbd>Enter</kbd>, and <kbd>Space</kbd> have been replaced with their respective Unicode symbols.
 
 Modified settings:
   - The display label now uses a single value for "linger time," rather than separate values for keystroke delay and linger time.
