@@ -21,7 +21,7 @@ struct Key specialKeys[] = {
     {0x11, L"Control"},
     {0x12, L"Menu"},
     {0x13, L"Pause"},
-    {0x14, L"CapsLock"},
+    {0x14, L"CAPS"},
     {0x15, L"Kana"},
     {0x17, L"Junja"},
     {0x18, L"Final"},

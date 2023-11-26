@@ -51,7 +51,6 @@ const WCHAR SPECIAL_KEYS[] = {
 };
 
 struct LabelSettings {
-    DWORD keyStrokeDelay;
     DWORD lingerTime;
     DWORD fadeDuration;
     LOGFONT font;
@@ -257,21 +256,6 @@ static void startFade() {
     }
 }
 
-bool outOfLine(LPCWSTR text) {
-    size_t newLen = wcslen(text);
-    if (keyLabels[labelCount - 1].text + keyLabels[labelCount - 1].length + newLen >= textBufferEnd) {
-        wcscpy_s(textBuffer, MAXCHARS, keyLabels[labelCount - 1].text);
-        keyLabels[labelCount - 1].text = textBuffer;
-    }
-    LPWSTR tmp = keyLabels[labelCount - 1].text + keyLabels[labelCount - 1].length;
-    wcscpy_s(tmp, (textBufferEnd - tmp), text);
-    RectF box;
-    PointF origin(0, 0);
-    gCanvas->MeasureString(keyLabels[labelCount - 1].text, keyLabels[labelCount - 1].length, fontPlus, origin, &box);
-    bool out = (int)box.Width >= canvasSize.cx;
-    return out;
-}
-
 bool isSpecialChar(WCHAR target) {
     size_t size = sizeof(SPECIAL_KEYS) / sizeof(WCHAR);
 
@@ -351,7 +335,7 @@ void showText(LPCWSTR text, DisplayBehavior behavior = AppendToLastLabel) {
     keyLabels[labelCount - 1].time = labelSettings.lingerTime + labelSettings.fadeDuration;
     keyLabels[labelCount - 1].fade = TRUE;
     updateLabel(labelCount - 1);
-    newStrokeCount = labelSettings.keyStrokeDelay;
+    newStrokeCount = labelSettings.lingerTime;
     updateLayeredWindow(hMainWnd);
 }
 
@@ -365,7 +349,7 @@ void updateCanvasSize(const POINT &pt) {
     canvasSize.cy = desktopRect.bottom - desktopRect.top;
     canvasOrigin.y = pt.y - desktopRect.bottom + desktopRect.top;
     canvasSize.cx = pt.x - desktopRect.left;
-    canvasOrigin.x = desktopRect.left + 700; // TODO: make width of label configurable?
+    canvasOrigin.x = desktopRect.left + 600; // TODO: make width of label configurable?
 
 #ifdef _DEBUG
     std::stringstream line;
@@ -541,7 +525,6 @@ void writeSettingInt(LPCTSTR lpKeyName, DWORD dw) {
 }
 
 void saveSettings() {
-    writeSettingInt(L"keyStrokeDelay", labelSettings.keyStrokeDelay);
     writeSettingInt(L"lingerTime", labelSettings.lingerTime);
     writeSettingInt(L"fadeDuration", labelSettings.fadeDuration);
     writeSettingInt(L"bgColor", labelSettings.bgColor);
@@ -578,14 +561,13 @@ void fixDeskOrigin() {
 }
 
 void loadSettings() {
-    labelSettings.keyStrokeDelay = GetPrivateProfileInt(L"KeyCastOW", L"keyStrokeDelay", 3000, iniFile);
     labelSettings.lingerTime = GetPrivateProfileInt(L"KeyCastOW", L"lingerTime", 3000, iniFile);
     labelSettings.fadeDuration = GetPrivateProfileInt(L"KeyCastOW", L"fadeDuration", 100, iniFile);
     labelSettings.bgColor = GetPrivateProfileInt(L"KeyCastOW", L"bgColor", RGB(0, 0, 0), iniFile);
     labelSettings.textColor = GetPrivateProfileInt(L"KeyCastOW", L"textColor", RGB(255, 255, 255), iniFile);
     labelSettings.bgOpacity = GetPrivateProfileInt(L"KeyCastOW", L"bgOpacity", 80, iniFile);
-    deskOrigin.x = GetPrivateProfileInt(L"KeyCastOW", L"offsetX", 1168, iniFile);
-    deskOrigin.y = GetPrivateProfileInt(L"KeyCastOW", L"offsetY", 160, iniFile);
+    deskOrigin.x = GetPrivateProfileInt(L"KeyCastOW", L"offsetX", 1269, iniFile);
+    deskOrigin.y = GetPrivateProfileInt(L"KeyCastOW", L"offsetY", 139, iniFile);
     MONITORINFO mi;
     GetWorkAreaByOrigin(deskOrigin, mi);
     CopyMemory(&desktopRect, &mi.rcWork, sizeof(RECT));
@@ -622,8 +604,6 @@ void loadSettings() {
 
 void renderSettingsData(HWND hwndDlg) {
     WCHAR tmp[256];
-    swprintf(tmp, 256, L"%d", previewLabelSettings.keyStrokeDelay);
-    SetDlgItemText(hwndDlg, IDC_KEYSTROKEDELAY, tmp);
     swprintf(tmp, 256, L"%d", previewLabelSettings.lingerTime);
     SetDlgItemText(hwndDlg, IDC_LINGERTIME, tmp);
     swprintf(tmp, 256, L"%d", previewLabelSettings.fadeDuration);
@@ -650,15 +630,15 @@ void renderSettingsData(HWND hwndDlg) {
 
 void getLabelSettings(HWND hwndDlg, LabelSettings &lblSettings) {
     WCHAR tmp[256];
-    GetDlgItemText(hwndDlg, IDC_KEYSTROKEDELAY, tmp, 256);
-    lblSettings.keyStrokeDelay = _wtoi(tmp);
+
     GetDlgItemText(hwndDlg, IDC_LINGERTIME, tmp, 256);
-    lblSettings.lingerTime = _wtoi(tmp);
+    lblSettings.lingerTime = min(_wtoi(tmp), 60000);
+
     GetDlgItemText(hwndDlg, IDC_FADEDURATION, tmp, 256);
-    lblSettings.fadeDuration = _wtoi(tmp);
+    lblSettings.fadeDuration = min(_wtoi(tmp), 2000);
+
     GetDlgItemText(hwndDlg, IDC_BGOPACITY, tmp, 256);
-    lblSettings.bgOpacity = _wtoi(tmp);
-    lblSettings.bgOpacity = min(lblSettings.bgOpacity, 255);
+    lblSettings.bgOpacity = min(_wtoi(tmp), 100);
 }
 
 #define PREVIEWTIMER_INTERVAL 5
@@ -679,6 +659,11 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
                         desktopRect.right - desktopRect.left - settingsDlgRect.right + settingsDlgRect.left,
                         desktopRect.bottom - desktopRect.top - settingsDlgRect.bottom + settingsDlgRect.top, 0, 0, SWP_NOSIZE);
                 GetWindowRect(hwndDlg, &settingsDlgRect);
+                CreateToolTip(hwndDlg, IDC_LINGERTIME, L"Max 60 seconds (60,000 ms)");
+                CreateToolTip(hwndDlg, IDC_FADEDURATION, L"Max 2 seconds (2000 ms)");
+                CreateToolTip(hwndDlg, IDC_DRAGGABLELABEL, L"Allows keystroke display to be dragged with mouse");
+                CreateToolTip(hwndDlg, IDC_ONLYCOMMANDKEYS, L"Only display special keys (e.g., Tab, F12) or key combinations including a modifier (e.g., Ctrl+a)");
+                CreateToolTip(hwndDlg, IDC_MOUSECAPTURINGMOD, L"Only displays mouse actions with modifier keys held (Ctrl, Alt, Shift, Win)");
                 HWND hCtrl = GetDlgItem(hwndDlg, IDC_ALIGNMENT);
                 ComboBox_InsertString(hCtrl, 0, L"Left");
                 ComboBox_InsertString(hCtrl, 1, L"Right");
@@ -743,7 +728,6 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
                         alignment = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT));
                         clearColor.SetValue(0x7f7f7f7f);
                         gCanvas->Clear(clearColor);
-                        showText(L"+", AppendToLastLabel);
                         fadeLastLabel(FALSE);
                         positioning = TRUE;
                     }
