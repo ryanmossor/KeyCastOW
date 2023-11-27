@@ -291,7 +291,7 @@ void cleanModifier(UINT virtualKey, LPWSTR modifierkeys) {
         }
     } else if (ptr) {
         // get rid of all after current key including the delimiter
-        *(ptr - 3) = '\0';
+        *(ptr - 1) = '\0';
     }
 }
 
