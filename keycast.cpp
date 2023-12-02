@@ -281,7 +281,6 @@ void showText(LPCWSTR text, DisplayBehavior behavior = AppendToLastLabel) {
 #endif
 
     DWORD i;
-
     WCHAR last = keyLabels[labelCount - 1].text[keyLabels[labelCount - 1].length - 1];
 
     bool currentIsBackspace = wcscmp(text, L"\u232B") == 0;
@@ -338,24 +337,29 @@ void showText(LPCWSTR text, DisplayBehavior behavior = AppendToLastLabel) {
     updateLayeredWindow(hMainWnd);
 }
 
-void updateCanvasSize(const POINT &pt) {
+void updateCanvasSize(const POINT &cursorPos) {
     for(DWORD i = 0; i < labelCount; i++) {
         if (keyLabels[i].time > 0) {
             eraseLabel(i);
             keyLabels[i].time = 0;
         }
     }
+
+	int maxLabelWidth = 1200;
+	int labelOffset = cursorPos.x - desktopRect.left - maxLabelWidth;
+
+    canvasSize.cx = min(cursorPos.x - desktopRect.left, maxLabelWidth);
     canvasSize.cy = desktopRect.bottom - desktopRect.top;
-    canvasOrigin.y = pt.y - desktopRect.bottom + desktopRect.top;
-    canvasSize.cx = pt.x - desktopRect.left;
-    canvasOrigin.x = desktopRect.left + 600; // TODO: make width of label configurable?
+
+    canvasOrigin.x = desktopRect.left + max(0, labelOffset);
+    canvasOrigin.y = cursorPos.y - desktopRect.bottom + desktopRect.top;
 
 #ifdef _DEBUG
     std::stringstream line;
     line << "desktopRect: {left: " << desktopRect.left << ", top: " <<  desktopRect.top << ", right: " <<  desktopRect.right << ", bottom: " <<  desktopRect.bottom << "};\n";
     line << "canvasSize: {" << canvasSize.cx << "," <<  canvasSize.cy << "};\n";
     line << "canvasOrigin: {" << canvasOrigin.x << "," <<  canvasOrigin.y << "};\n";
-    line << "pt: {" << pt.x << "," <<  pt.y << "};\n";
+    line << "cursorPos: {" << cursorPos.x << "," <<  cursorPos.y << "};\n\n";
     log(line);
 #endif
 }
@@ -448,6 +452,7 @@ void positionOrigin(int action, POINT &cursorPos) {
         updateCanvasSize(cursorPos);
         clearColor.SetValue(0x007f7f7f);
         gCanvas->Clear(clearColor);
+        showText(L"", ReplaceLastLabel);
     }
 }
 
