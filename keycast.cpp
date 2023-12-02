@@ -19,7 +19,6 @@ using namespace Gdiplus;
 #include "timer.h"
 CTimer showTimer;
 CTimer previewTimer;
-
 WCHAR iniFile[MAX_PATH];
 
 #define MAXCHARS 4096
@@ -203,7 +202,7 @@ void updateLabel(int i) {
 }
 
 void fadeLastLabel(BOOL whether) {
-    keyLabels[labelCount-1].fade = whether;
+    keyLabels[labelCount - 1].fade = whether;
 }
 
 static int newStrokeCount = 0;
@@ -411,42 +410,42 @@ void prepareLabels() {
     }
 }
 
-void GetWorkAreaByOrigin(const POINT &pt, MONITORINFO &mi) {
-    RECT rc = {pt.x-1, pt.y-1, pt.x+1, pt.y+1};
+void GetWorkAreaByOrigin(const POINT &pt, MONITORINFO &monitorInfo) {
+    RECT rc = {pt.x - 1, pt.y - 1, pt.x + 1, pt.y + 1};
     HMONITOR hMonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONEAREST);
-    mi.cbSize = sizeof(mi);
-    GetMonitorInfo(hMonitor, &mi);
+    monitorInfo.cbSize = sizeof(monitorInfo);
+    GetMonitorInfo(hMonitor, &monitorInfo);
 }
 
-void positionOrigin(int action, POINT &pt) {
+void positionOrigin(int action, POINT &cursorPos) {
     if (action == 0) {
-        updateCanvasSize(pt);
+        updateCanvasSize(cursorPos);
 
-        MONITORINFO mi;
-        GetWorkAreaByOrigin(pt, mi);
-        if (mi.rcWork.left != desktopRect.left || mi.rcWork.top != desktopRect.top) {
-            CopyMemory(&desktopRect, &mi.rcWork, sizeof(RECT));
+        MONITORINFO monitorInfo;
+        GetWorkAreaByOrigin(cursorPos, monitorInfo);
+        if (monitorInfo.rcWork.left != desktopRect.left || monitorInfo.rcWork.top != desktopRect.top) {
+            CopyMemory(&desktopRect, &monitorInfo.rcWork, sizeof(RECT));
             MoveWindow(hMainWnd, desktopRect.left, desktopRect.top, 1, 1, TRUE);
             createCanvas();
             prepareLabels();
         }
 #ifdef _DEBUG
         std::stringstream line;
-        line << "rcWork: {" << mi.rcWork.left << "," <<  mi.rcWork.top << "," <<  mi.rcWork.right << "," <<  mi.rcWork.bottom << "};\n";
+        line << "rcWork: {" << monitorInfo.rcWork.left << "," <<  monitorInfo.rcWork.top << "," <<  monitorInfo.rcWork.right << "," <<  monitorInfo.rcWork.bottom << "};\n";
         line << "desktopRect: {" << desktopRect.left << "," <<  desktopRect.top << "," <<  desktopRect.right << "," <<  desktopRect.bottom << "};\n";
         line << "canvasSize: {" << canvasSize.cx << "," <<  canvasSize.cy << "};\n";
         line << "canvasOrigin: {" << canvasOrigin.x << "," <<  canvasOrigin.y << "};\n";
-        line << "labelCount: " << labelCount << "\n";
+        line << "labelCount: " << labelCount << "\n\n";
         log(line);
 #endif
         WCHAR tmp[256];
-        swprintf(tmp, 256, L"(%d,%d) ", pt.x, pt.y);
+        swprintf(tmp, 256, L"(%d,%d) ", cursorPos.x, cursorPos.y);
         showText(tmp, AppendToLastLabel);
     } else {
         positioning = FALSE;
-        deskOrigin.x = pt.x;
-        deskOrigin.y = pt.y;
-        updateCanvasSize(pt);
+        deskOrigin.x = cursorPos.x;
+        deskOrigin.y = cursorPos.y;
+        updateCanvasSize(cursorPos);
         clearColor.SetValue(0x007f7f7f);
         gCanvas->Clear(clearColor);
     }
@@ -568,9 +567,9 @@ void loadSettings() {
     labelSettings.bgOpacity = GetPrivateProfileInt(L"KeyCastOW", L"bgOpacity", 80, iniFile);
     deskOrigin.x = GetPrivateProfileInt(L"KeyCastOW", L"offsetX", 1269, iniFile);
     deskOrigin.y = GetPrivateProfileInt(L"KeyCastOW", L"offsetY", 139, iniFile);
-    MONITORINFO mi;
-    GetWorkAreaByOrigin(deskOrigin, mi);
-    CopyMemory(&desktopRect, &mi.rcWork, sizeof(RECT));
+    MONITORINFO monitorInfo;
+    GetWorkAreaByOrigin(deskOrigin, monitorInfo);
+    CopyMemory(&desktopRect, &monitorInfo.rcWork, sizeof(RECT));
     MoveWindow(hMainWnd, desktopRect.left, desktopRect.top, 1, 1, TRUE);
     fixDeskOrigin();
     visibleShift = GetPrivateProfileInt(L"KeyCastOW", L"visibleShift", 0, iniFile);
@@ -588,7 +587,7 @@ void loadSettings() {
         SetWindowLong(hMainWnd, GWL_EXSTYLE, GetWindowLong(hMainWnd, GWL_EXSTYLE) | WS_EX_TRANSPARENT);
     }
     // default toggle modifier: Win + Shift + K
-    tcModifiers = GetPrivateProfileInt(L"KeyCastOW", L"tcModifiers", MOD_SHIFT | MOD_WIN, iniFile);
+    tcModifiers = GetPrivateProfileInt(L"KeyCastOW", L"tcModifiers", MOD_WIN | MOD_SHIFT, iniFile);
     tcKey = GetPrivateProfileInt(L"KeyCastOW", L"tcKey", 0x4b, iniFile);
     memset(&labelSettings.font, 0, sizeof(labelSettings.font));
     labelSettings.font.lfCharSet = DEFAULT_CHARSET;
@@ -628,17 +627,17 @@ void renderSettingsData(HWND hwndDlg) {
     ComboBox_SetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT), alignment);
 }
 
-void getLabelSettings(HWND hwndDlg, LabelSettings &lblSettings) {
+void getLabelSettings(HWND hwndDlg, LabelSettings &labelSettings) {
     WCHAR tmp[256];
 
     GetDlgItemText(hwndDlg, IDC_LINGERTIME, tmp, 256);
-    lblSettings.lingerTime = min(_wtoi(tmp), 60000);
+    labelSettings.lingerTime = min(_wtoi(tmp), 60000);
 
     GetDlgItemText(hwndDlg, IDC_FADEDURATION, tmp, 256);
-    lblSettings.fadeDuration = min(_wtoi(tmp), 2000);
+    labelSettings.fadeDuration = min(_wtoi(tmp), 2000);
 
     GetDlgItemText(hwndDlg, IDC_BGOPACITY, tmp, 256);
-    lblSettings.bgOpacity = min(_wtoi(tmp), 100);
+    labelSettings.bgOpacity = min(_wtoi(tmp), 100);
 }
 
 #define PREVIEWTIMER_INTERVAL 5
@@ -786,18 +785,18 @@ LRESULT CALLBACK DraggableWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
             showTimer.Stop();
             break;
         case WM_MOUSEMOVE:
-            if (GetCapture()==hWnd)
+            if (GetCapture() == hWnd)
             {
-                POINT p;
-                GetCursorPos(&p);
-                int dx= p.x - s_last_mouse.x;
-                int dy= p.y - s_last_mouse.y;
-                if (dx||dy)
+                POINT cursorPos;
+                GetCursorPos(&cursorPos);
+                int dx = cursorPos.x - s_last_mouse.x;
+                int dy = cursorPos.y - s_last_mouse.y;
+                if (dx || dy)
                 {
-                    s_last_mouse=p;
+                    s_last_mouse = cursorPos;
                     RECT r;
-                    GetWindowRect(hWnd,&r);
-                    SetWindowPos(hWnd,HWND_TOPMOST,r.left+dx,r.top+dy,0,0,SWP_NOSIZE|SWP_NOACTIVATE);
+                    GetWindowRect(hWnd, &r);
+                    SetWindowPos(hWnd, HWND_TOPMOST, r.left + dx, r.top + dy, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
                 }
             }
             break;
@@ -850,10 +849,10 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 {
                     case WM_RBUTTONUP:
                         {
-                            POINT pnt;
-                            GetCursorPos(&pnt);
+                            POINT cursorPos;
+                            GetCursorPos(&cursorPos);
                             SetForegroundWindow(hWnd); // needed to get keyboard focus
-                            TrackPopupMenu(hPopMenu, TPM_LEFTALIGN, pnt.x, pnt.y, 0, hWnd, NULL);
+                            TrackPopupMenu(hPopMenu, TPM_LEFTALIGN, cursorPos.x, cursorPos.y, 0, hWnd, NULL);
                         }
                         break;
                     case WM_LBUTTONDBLCLK:
@@ -941,7 +940,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 int dx = p.x - s_last_mouse.x;
                 int dy = p.y - s_last_mouse.y;
                 if (dx || dy) {
-                    s_last_mouse=p;
+                    s_last_mouse = p;
                     positionOrigin(0, p);
                 }
             }
