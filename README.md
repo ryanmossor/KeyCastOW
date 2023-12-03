@@ -16,7 +16,8 @@ Pressing <kbd>Backspace</kbd> will now delete the last character in the display 
 
 Modified settings:
   - The display label now uses a single value for "linger time," rather than separate values for keystroke delay and linger time.
-  - Combination characters are now hard-coded to `<+>` (e.g., `<Ctrl+a>`)
+  - The maximum width of the display label is now configurable and will default to width of the user's display.
+    - When using this setting, set your desired max width and then click the "Set Position" button to choose a location for the display label. Updating the label position with "Set Position" is currently required due to how the program updates the size of the display label.
   - Display time (previously "linger time") now has a maximum value of 60,000ms (60 seconds)
   - Fade duration now has a maximum value of 2,000ms (2 seconds)
   - Background opacity is now a percentage value rather than a 0-255 value
@@ -24,16 +25,17 @@ Modified settings:
 Removed settings:
   - Display border
   - Display corner rounding
+  - Display alignment -- now defaults to right
   - Text opacity
   - Label preview
-  - Maximum lines (only one display label is used)
+  - Maximum lines -- only one display label is used
   - Label spacing
   - Branding
-  - Combination characters
+  - Combination characters -- now hard-coded to `<+>` (e.g., `<Ctrl+a>`)
 
 ## Known Issues
 
-I didn't want the display label spanning my entire screen, so I made a code change that leaves some space on the left side of my screen. Unfortunately, this empty space is relative to the left edge of the screen, so positioning the display label anywhere other than near the right edge of the screen will shorten the maximum length of the display label. At some point, I may try making the width of the display label configurable.
+- Dragging the display label using the "Draggable Window" option can cause the program to slow down (e.g., the display label will linger for longer than desired and will also take longer to fade out). This issue existed in the original software and was not introduced in this fork.
 
 ## Build
 
