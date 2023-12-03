@@ -185,7 +185,7 @@ void updateLabel(int i) {
         r = (r > 1.0f) ? 1.0f : r;
         PointF origin(rc.X, rc.Y);
         gCanvas->MeasureString(keyLabels[i].text, keyLabels[i].length, fontPlus, origin, &rc);
-            rc.X = canvasSize.cx - rc.Width;
+		rc.X = canvasSize.cx - rc.Width;
 
         int bgAlpha = (int)(r * labelSettings.bgOpacity * 2.55);
         int textAlpha = (int)(r * labelSettings.textOpacity);
@@ -656,8 +656,8 @@ static void previewLabel() {
 
 BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
     WCHAR tmp[256];
-    switch (msg)
-    {
+
+    switch (msg) {
         case WM_INITDIALOG:
             {
                 renderSettingsData(hwndDlg);
@@ -688,8 +688,7 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
 
             break;
         case WM_COMMAND:
-            switch (LOWORD(wParam))
-            {
+            switch (LOWORD(wParam)) {
                 case IDC_TEXTFONT:
                     {
                         CHOOSEFONT cf ;
@@ -780,8 +779,7 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
 
 LRESULT CALLBACK DraggableWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     static POINT s_last_mouse;
-    switch(message)
-    {
+    switch(message) {
         // hold mouse to move
         case WM_LBUTTONDOWN:
             SetCapture(hWnd);
@@ -789,14 +787,12 @@ LRESULT CALLBACK DraggableWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
             showTimer.Stop();
             break;
         case WM_MOUSEMOVE:
-            if (GetCapture() == hWnd)
-            {
+            if (GetCapture() == hWnd) {
                 POINT cursorPos;
                 GetCursorPos(&cursorPos);
                 int dx = cursorPos.x - s_last_mouse.x;
                 int dy = cursorPos.y - s_last_mouse.y;
-                if (dx || dy)
-                {
+                if (dx || dy) {
                     s_last_mouse = cursorPos;
                     RECT r;
                     GetWindowRect(hWnd, &r);
@@ -849,8 +845,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             break;
         case WM_TRAYMSG:
             {
-                switch (lParam)
-                {
+                switch (lParam) {
                     case WM_RBUTTONUP:
                         {
                             POINT cursorPos;
@@ -867,8 +862,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             break;
         case WM_COMMAND:
             {
-                switch (LOWORD(wParam))
-                {
+                switch (LOWORD(wParam)) {
                     case MENU_CONFIG:
                         CopyMemory(&previewLabelSettings, &labelSettings, sizeof(previewLabelSettings));
                         renderSettingsData(hDlgSettings);
@@ -939,13 +933,13 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             break;
         case WM_MOUSEMOVE:
             if (GetCapture() == hWnd) {
-                POINT p;
-                GetCursorPos(&p);
-                int dx = p.x - s_last_mouse.x;
-                int dy = p.y - s_last_mouse.y;
+                POINT cursorPos;
+                GetCursorPos(&cursorPos);
+                int dx = cursorPos.x - s_last_mouse.x;
+                int dy = cursorPos.y - s_last_mouse.y;
                 if (dx || dy) {
-                    s_last_mouse = p;
-                    positionOrigin(0, p);
+                    s_last_mouse = cursorPos;
+                    positionOrigin(0, cursorPos);
                 }
             }
             break;
@@ -1020,21 +1014,21 @@ int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst, LPSTR lpszArgs, int
 
     INITCOMMONCONTROLSEX icex;
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-    icex.dwICC = ICC_LINK_CLASS|ICC_LISTVIEW_CLASSES|ICC_PAGESCROLLER_CLASS
-        |ICC_PROGRESS_CLASS|ICC_STANDARD_CLASSES|ICC_TAB_CLASSES|ICC_TREEVIEW_CLASSES
-        |ICC_UPDOWN_CLASS|ICC_USEREX_CLASSES|ICC_WIN95_CLASSES;
+    icex.dwICC = ICC_LINK_CLASS | ICC_LISTVIEW_CLASSES | ICC_PAGESCROLLER_CLASS
+        | ICC_PROGRESS_CLASS | ICC_STANDARD_CLASSES | ICC_TAB_CLASSES | ICC_TREEVIEW_CLASSES
+        | ICC_UPDOWN_CLASS | ICC_USEREX_CLASSES | ICC_WIN95_CLASSES;
     InitCommonControlsEx(&icex);
 
     GetModuleFileName(NULL, iniFile, MAX_PATH);
-    iniFile[wcslen(iniFile)-4] = '\0';
+    iniFile[wcslen(iniFile) - 4] = '\0';
     wcscat_s(iniFile, MAX_PATH, L".ini");
 #ifdef _DEBUG
     wcscpy_s(capFile, MAX_PATH, iniFile);
-    capFile[wcslen(capFile)-4] = '\0';
+    capFile[wcslen(capFile) - 4] = '\0';
     wcscat_s(capFile, MAX_PATH, L".cap");
 
     wcscpy_s(logFile, MAX_PATH, iniFile);
-    logFile[wcslen(logFile)-4] = '\0';
+    logFile[wcslen(logFile) - 4] = '\0';
     wcscat_s(logFile, MAX_PATH, L".txt");
     errno_t err = _wfopen_s(&capStream, capFile, L"wb");
     err = _wfopen_s(&logStream, logFile, L"a");
@@ -1062,7 +1056,7 @@ int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst, LPSTR lpszArgs, int
         NULL
     );
 
-    if (!hMainWnd)    {
+    if (!hMainWnd) {
         MessageBox(NULL, L"Could not create window", L"Error", MB_OK);
         return 0;
     }
@@ -1072,21 +1066,21 @@ int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst, LPSTR lpszArgs, int
     hDlgSettings = CreateDialog(hThisInst, MAKEINTRESOURCE(IDD_DLGSETTINGS), NULL, (DLGPROC)SettingsWndProc);
     MyRegisterClassEx(hThisInst, L"STAMP", DraggableWndProc);
     hWndStamp = CreateWindowEx(
-            WS_EX_LAYERED | WS_EX_NOACTIVATE,
-            L"STAMP", L"STAMP", WS_VISIBLE|WS_POPUP,
-            0, 0, 1, 1,
-            NULL, NULL, hThisInst, NULL);
+        WS_EX_LAYERED | WS_EX_NOACTIVATE,
+        L"STAMP", L"STAMP", WS_VISIBLE | WS_POPUP,
+        0, 0, 1, 1,
+        NULL, NULL, hThisInst, NULL);
 
     if (!RegisterHotKey(NULL, 1, tcModifiers | MOD_NOREPEAT, tcKey)) {
-        MessageBox(NULL, L"Unable to register hotkey, you probably need go to settings to redefine your hotkey for toggle capturing.", L"Warning", MB_OK|MB_ICONWARNING);
+        MessageBox(NULL, L"Unable to register hotkey, you probably need go to settings to redefine your hotkey for toggle capturing.", L"Warning", MB_OK | MB_ICONWARNING);
     }
     UpdateWindow(hMainWnd);
 
     createCanvas();
     prepareLabels();
     ShowWindow(hMainWnd, SW_SHOW);
-    HFONT hlabelFont = CreateFont(20,10,0,0,FW_BLACK,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_OUTLINE_PRECIS,
-                CLIP_DEFAULT_PRECIS,ANTIALIASED_QUALITY, VARIABLE_PITCH,TEXT("Arial"));
+    HFONT hlabelFont = CreateFont(20, 10, 0, 0, FW_BLACK, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
     HWND hlink = GetDlgItem(hDlgSettings, IDC_SYSLINK1);
     SendMessage(hlink, WM_SETFONT, (WPARAM)hlabelFont, TRUE);
 
@@ -1097,10 +1091,10 @@ int WINAPI WinMain(HINSTANCE hThisInst, HINSTANCE hPrevInst, LPSTR lpszArgs, int
     kbdhook = SetWindowsHookEx(WH_KEYBOARD_LL, LLKeyboardProc, hThisInst, NULL);
     moshook = SetWindowsHookEx(WH_MOUSE_LL, LLMouseProc, hThisInst, 0);
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-    _set_abort_behavior(0,_WRITE_ABORT_MSG);
+    _set_abort_behavior(0, _WRITE_ABORT_MSG);
     SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
 
-    while(GetMessage(&msg, NULL, 0, 0))    {
+    while (GetMessage(&msg, NULL, 0, 0)) {
         if (msg.message == WM_HOTKEY) {
             if (kbdhook) {
                 showText(L"\u2716", ReplaceLastLabel);     // disable key display
