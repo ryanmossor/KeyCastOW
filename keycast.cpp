@@ -55,6 +55,7 @@ struct LabelSettings {
     LOGFONT font;
     COLORREF bgColor, textColor;
     DWORD bgOpacity, textOpacity = 255;
+    DWORD maxWidth;
 };
 
 LabelSettings labelSettings, previewLabelSettings;
@@ -64,7 +65,6 @@ BOOL mouseCapturing = FALSE;
 BOOL mouseCapturingMod = FALSE;
 BOOL keyAutoRepeat = TRUE;
 BOOL mergeMouseActions = TRUE;
-int alignment = 1;
 BOOL onlyCommandKeys = FALSE;
 BOOL positioning = FALSE;
 BOOL draggableLabel = FALSE;
@@ -185,11 +185,7 @@ void updateLabel(int i) {
         r = (r > 1.0f) ? 1.0f : r;
         PointF origin(rc.X, rc.Y);
         gCanvas->MeasureString(keyLabels[i].text, keyLabels[i].length, fontPlus, origin, &rc);
-        if (alignment) {
             rc.X = canvasSize.cx - rc.Width;
-        } else {
-            rc.X = (REAL)0;
-        }
 
         int bgAlpha = (int)(r * labelSettings.bgOpacity * 2.55);
         int textAlpha = (int)(r * labelSettings.textOpacity);
@@ -345,10 +341,9 @@ void updateCanvasSize(const POINT &cursorPos) {
         }
     }
 
-	int maxLabelWidth = 1200;
-	int labelOffset = cursorPos.x - desktopRect.left - maxLabelWidth;
+	int labelOffset = cursorPos.x - desktopRect.left - labelSettings.maxWidth;
 
-    canvasSize.cx = min(cursorPos.x - desktopRect.left, maxLabelWidth);
+    canvasSize.cx = min(cursorPos.x - desktopRect.left, labelSettings.maxWidth);
     canvasSize.cy = desktopRect.bottom - desktopRect.top;
 
     canvasOrigin.x = desktopRect.left + max(0, labelOffset);
@@ -535,6 +530,7 @@ void saveSettings() {
     writeSettingInt(L"textColor", labelSettings.textColor);
     WritePrivateProfileStruct(L"KeyCastOW", L"labelFont", (LPVOID)&labelSettings.font, sizeof(labelSettings.font), iniFile);
     writeSettingInt(L"bgOpacity", labelSettings.bgOpacity);
+    writeSettingInt(L"maxWidth", labelSettings.maxWidth);
     writeSettingInt(L"offsetX", deskOrigin.x);
     writeSettingInt(L"offsetY", deskOrigin.y);
     writeSettingInt(L"visibleShift", visibleShift);
@@ -543,7 +539,6 @@ void saveSettings() {
     writeSettingInt(L"mouseCapturingMod", mouseCapturingMod);
     writeSettingInt(L"keyAutoRepeat", keyAutoRepeat);
     writeSettingInt(L"mergeMouseActions", mergeMouseActions);
-    writeSettingInt(L"alignment", alignment);
     writeSettingInt(L"onlyCommandKeys", onlyCommandKeys);
     writeSettingInt(L"draggableLabel", draggableLabel);
     if (draggableLabel) {
@@ -570,20 +565,24 @@ void loadSettings() {
     labelSettings.bgColor = GetPrivateProfileInt(L"KeyCastOW", L"bgColor", RGB(0, 0, 0), iniFile);
     labelSettings.textColor = GetPrivateProfileInt(L"KeyCastOW", L"textColor", RGB(255, 255, 255), iniFile);
     labelSettings.bgOpacity = GetPrivateProfileInt(L"KeyCastOW", L"bgOpacity", 80, iniFile);
-    deskOrigin.x = GetPrivateProfileInt(L"KeyCastOW", L"offsetX", 1269, iniFile);
-    deskOrigin.y = GetPrivateProfileInt(L"KeyCastOW", L"offsetY", 139, iniFile);
+
+    // initialize x/y offscreen; gets corrected to monitor right/bottom values by fixDeskOrigin() below
+    deskOrigin.x = GetPrivateProfileInt(L"KeyCastOW", L"offsetX", -1, iniFile); 
+    deskOrigin.y = GetPrivateProfileInt(L"KeyCastOW", L"offsetY", -1, iniFile);
     MONITORINFO monitorInfo;
     GetWorkAreaByOrigin(deskOrigin, monitorInfo);
     CopyMemory(&desktopRect, &monitorInfo.rcWork, sizeof(RECT));
     MoveWindow(hMainWnd, desktopRect.left, desktopRect.top, 1, 1, TRUE);
     fixDeskOrigin();
+    // maxWidth assignment must come after monitorInfo dimensions get copied to desktopRect
+    labelSettings.maxWidth = GetPrivateProfileInt(L"KeyCastOW", L"maxWidth", desktopRect.right, iniFile);
+
     visibleShift = GetPrivateProfileInt(L"KeyCastOW", L"visibleShift", 0, iniFile);
     visibleModifier = GetPrivateProfileInt(L"KeyCastOW", L"visibleModifier", 0, iniFile);
     mouseCapturing = GetPrivateProfileInt(L"KeyCastOW", L"mouseCapturing", 0, iniFile);
     mouseCapturingMod = GetPrivateProfileInt(L"KeyCastOW", L"mouseCapturingMod", 0, iniFile);
     keyAutoRepeat = GetPrivateProfileInt(L"KeyCastOW", L"keyAutoRepeat", 1, iniFile);
     mergeMouseActions = GetPrivateProfileInt(L"KeyCastOW", L"mergeMouseActions", 0, iniFile);
-    alignment = GetPrivateProfileInt(L"KeyCastOW", L"alignment", 1, iniFile);
     onlyCommandKeys = GetPrivateProfileInt(L"KeyCastOW", L"onlyCommandKeys", 0, iniFile);
     draggableLabel = GetPrivateProfileInt(L"KeyCastOW", L"draggableLabel", 0, iniFile);
     if (draggableLabel) {
@@ -614,6 +613,8 @@ void renderSettingsData(HWND hwndDlg) {
     SetDlgItemText(hwndDlg, IDC_FADEDURATION, tmp);
     swprintf(tmp, 256, L"%d", previewLabelSettings.bgOpacity);
     SetDlgItemText(hwndDlg, IDC_BGOPACITY, tmp);
+    swprintf(tmp, 256, L"%d", previewLabelSettings.maxWidth);
+    SetDlgItemText(hwndDlg, IDC_MAXWIDTH, tmp);
 
     CheckDlgButton(hwndDlg, IDC_VISIBLESHIFT, visibleShift ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hwndDlg, IDC_VISIBLEMODIFIER, visibleModifier ? BST_CHECKED : BST_UNCHECKED);
@@ -629,7 +630,6 @@ void renderSettingsData(HWND hwndDlg) {
     CheckDlgButton(hwndDlg, IDC_MODWIN, (tcModifiers & MOD_WIN) ? BST_CHECKED : BST_UNCHECKED);
     swprintf(tmp, 256, L"%c", MapVirtualKey(tcKey, MAPVK_VK_TO_CHAR));
     SetDlgItemText(hwndDlg, IDC_TCKEY, tmp);
-    ComboBox_SetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT), alignment);
 }
 
 void getLabelSettings(HWND hwndDlg, LabelSettings &labelSettings) {
@@ -643,6 +643,9 @@ void getLabelSettings(HWND hwndDlg, LabelSettings &labelSettings) {
 
     GetDlgItemText(hwndDlg, IDC_BGOPACITY, tmp, 256);
     labelSettings.bgOpacity = min(_wtoi(tmp), 100);
+
+    GetDlgItemText(hwndDlg, IDC_MAXWIDTH, tmp, 256);
+    labelSettings.maxWidth = min(_wtoi(tmp), desktopRect.right);
 }
 
 #define PREVIEWTIMER_INTERVAL 5
@@ -668,9 +671,6 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
                 CreateToolTip(hwndDlg, IDC_DRAGGABLELABEL, L"Allows keystroke display to be dragged with mouse");
                 CreateToolTip(hwndDlg, IDC_ONLYCOMMANDKEYS, L"Only display special keys (e.g., Tab, F12) or key combinations including a modifier (e.g., Ctrl+a)");
                 CreateToolTip(hwndDlg, IDC_MOUSECAPTURINGMOD, L"Only displays mouse actions with modifier keys held (Ctrl, Alt, Shift, Win)");
-                HWND hCtrl = GetDlgItem(hwndDlg, IDC_ALIGNMENT);
-                ComboBox_InsertString(hCtrl, 0, L"Left");
-                ComboBox_InsertString(hCtrl, 1, L"Right");
             }
             return TRUE;
         case WM_NOTIFY:
@@ -729,7 +729,7 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
                     return TRUE;
                 case IDC_POSITION:
                     {
-                        alignment = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT));
+						labelSettings.maxWidth = previewLabelSettings.maxWidth;
                         clearColor.SetValue(0x7f7f7f7f);
                         gCanvas->Clear(clearColor);
                         fadeLastLabel(FALSE);
@@ -760,7 +760,6 @@ BOOL CALLBACK SettingsWndProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lPar
                         tcModifiers |= MOD_WIN;
                     }
                     GetDlgItemText(hwndDlg, IDC_TCKEY, tmp, 256);
-                    alignment = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_ALIGNMENT));
                     if (tcModifiers != 0 && tmp[0] != '\0') {
                         tcKey = VkKeyScanEx(tmp[0], GetKeyboardLayout(0));
                         UnregisterHotKey(NULL, 1);
